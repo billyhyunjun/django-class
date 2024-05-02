@@ -6,9 +6,10 @@ from rest_framework.permissions import (
     IsAuthenticated,
     AllowAny,
     IsAuthenticatedOrReadOnly,
+    IsAdminUser,
 )
 from django.db.models import Q
-from .models import Product
+from .models import Product, Category
 from .serializers import ProductSerializer
 
 
@@ -36,10 +37,14 @@ class ProductListAPIView(generics.ListAPIView):
         name = request.data.get("name")
         context = request.data.get("context")
         image = request.data.get("image")
+        category = request.data.get("category")
 
         # validate data
         if not (name and context and image):
             return Response({"error": "name, context, image is required"}, status=400)
+
+        if category:
+            category = get_object_or_404(Category, pk=category)
 
         # save data
         product = Product.objects.create(
@@ -47,6 +52,7 @@ class ProductListAPIView(generics.ListAPIView):
             name=name,
             context=context,
             image=image,
+            category=category,
         )
 
         serializer = ProductSerializer(product)
@@ -87,3 +93,15 @@ class ProductDetailAPIView(APIView):
             )
         product.delete()
         return Response(status=204)
+
+
+class CategoryListAPIView(APIView):
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        name = request.data.get("name")
+        if not name:
+            return Response({"error": "name is required"}, status=400)
+
+        category, _ = Category.objects.get_or_create(name=name)
+        return Response({"id": category.id, "name": category.name})
