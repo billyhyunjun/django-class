@@ -32,6 +32,7 @@ class ProductListAPIView(generics.ListAPIView):
 
         # save data
         product = Product.objects.create(
+            user=request.user,
             name=name,
             context=context,
             image=image,
@@ -63,20 +64,15 @@ class ProductDetailAPIView(APIView):
         product.image = image
         product.save()
 
-        # serialize product
         serializer = ProductSerializer(product)
         return Response(serializer.data)
 
     def delete(self, request, pk):
-        # 1. get product
         product = get_object_or_404(Product, pk=pk)
-        # 2. check if user is owner
         if product.user != request.user:
             return Response(
                 {"error": "You don't have permission to delete this product"},
                 status=400,
             )
-        # 3. delete product
         product.delete()
-        # 4. return success message
         return Response(status=204)
