@@ -7,19 +7,30 @@ from rest_framework.permissions import (
     AllowAny,
     IsAuthenticatedOrReadOnly,
 )
+from django.db.models import Q
 from .models import Product
 from .serializers import ProductSerializer
 
 
 class ProductListAPIView(generics.ListAPIView):
-    queryset = Product.objects.all()
     serializer_class = ProductSerializer
     permission_classes = [IsAuthenticatedOrReadOnly]
 
-    # def get(self, request):
-    #     products = Product.objects.all()
-    #     serializer = ProductSerializer(products, many=True)
-    #     return Response(serializer.data)
+    def get_queryset(self):
+        query_params = self.request.query_params
+        name = query_params.get("name")
+        context = query_params.get("context")
+        username = query_params.get("username")
+
+        q = Q()
+        if name:
+            q &= Q(name__icontains=name)
+        if context:
+            q &= Q(context__icontains=context)
+        if username:
+            q &= Q(user__username=username)
+
+        return Product.objects.filter(q)
 
     def post(self, request):
         name = request.data.get("name")
